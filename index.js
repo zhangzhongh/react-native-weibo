@@ -1,9 +1,5 @@
-/**
- * Created by lvbingru on 1/5/16.
- */
-
 import {NativeModules, NativeAppEventEmitter} from 'react-native';
-import promisify from 'es6-promisify';
+//import promisify from 'es6-promisify';
 
 const {WeiboAPI} = NativeModules;
 
@@ -27,9 +23,22 @@ function wrapApi(nativeFunc) {
     if (!nativeFunc) {
         return undefined;
     }
-    const promisified = promisify(nativeFunc, translateError);
+    //const promisified = promisify(nativeFunc, translateError);
     return (...args) => {
-        return promisified(...args);
+        return new Promise((resolve, reject) => {
+            nativeFunc.apply(null, [
+                ...args,
+                (error, result) => {
+                    if (!error) {
+                        return resolve(result);
+                    }
+                    if (typeof error === 'string') {
+                        return reject(new Error(error));
+                    }
+                    reject(error);
+                },
+            ]);
+        });
     };
 }
 
@@ -87,4 +96,3 @@ export function share(data) {
     checkData(data)
     return Promise.all([waitForResponse('WBSendMessageToWeiboResponse'), nativeSendMessageRequest(data)]).then(v=>v[0]);
 }
-
